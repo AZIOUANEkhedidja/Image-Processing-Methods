@@ -48,6 +48,7 @@ def show_img(img, imgresult):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+
 # -------------------------------------------------------opencv code histogramme-------------------------------------------------------
 def histogram_method_opencv2(path):
 
@@ -66,6 +67,7 @@ def histogram_method_opencv2_ng(path):
     ng = cv2.split(img)
     ng_hist, _ = np.histogram(ng, bins=256, range=(0, 256))
     return ng_hist
+
 
 def histogramme_cumule_opencv(path):
     img = cv2.imread(path)
@@ -86,3 +88,27 @@ def histogramme_cumule_opencv_ng(path):
     ng = cv2.split(img)
     ng_hist, _ = np.histogram(ng, bins=256, range=(0, 256))
     return np.cumsum(ng_hist)
+
+
+def etirement_histogramme_opencv(path):
+    image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2GRAY) 
+    min_val = np.min(image)
+    max_val = np.max(image)
+    image_etiree = (image - min_val) * (255 / (max_val - min_val))
+    image_etiree = np.clip(image_etiree, 0, 255).astype(np.uint8)
+    return image_etiree
+
+
+def egalisation_histogramme_opencv(path):
+    image = cv2.imread(path)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.equalizeHist(image)
+    return image
+
+
+def show_img(img):
+    cv2.imshow('Before', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# show_img(egalisation_histogramme_opencv('images/img.jpg'))

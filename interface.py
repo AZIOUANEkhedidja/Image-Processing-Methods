@@ -12,7 +12,7 @@ from image_conversion_and_histogram_opencv import *
 class ImageProcessorApp:
     def __init__(self, master):
         self.master = master
-        self.master.geometry("1300x400")
+        self.master.geometry("1100x600")
         
         self.path = None
         self.img = None
@@ -57,10 +57,40 @@ class ImageProcessorApp:
 
     def add_histogram_menu_items(self, menu):
         histogram_functions = [
-            ("Histogram", lambda: self.check_image_and_process(self.display_histogram, [histogram_method(self.path), histogram_method_opencv2(self.path)], ['Histogram Code', 'Histogram OpenCV'], 400)),
-            ("Gray Histogram", lambda: self.check_image_and_process(self.display_histogram_ng, [histogram_method_ng(self.path), histogram_method_opencv2_ng(self.path)], ['Histogram Code', 'Histogram OpenCV'], 400, self.path)),
-            ("Cumulative Histogram", lambda: self.check_image_and_process(self.display_histogram, [histogramme_cumule(self.path), histogramme_cumule_opencv(self.path)], ['Cumulative Histogram Code', 'Cumulative Histogram OpenCV'], 400)),
-            ("Cumulative Gray Histogram", lambda: self.check_image_and_process(self.display_histogram_ng, [histogramme_cumule_ng(self.path), histogramme_cumule_opencv_ng(self.path)], ['Cumulative Histogram Code', 'Cumulative Histogram OpenCV'], 400, self.path))
+            ("Histogram", lambda: self.check_image_and_process(
+                self.display_histogram,
+                [histogram_method(self.path), histogram_method_opencv2(self.path)],
+                ['Histogram Code', 'Histogram OpenCV'], 4000
+            )),
+            ("Gray Histogram", lambda: self.check_image_and_process(
+                self.display_histogram_ng,
+                [histogram_method_ng(self.path), histogram_method_opencv2_ng(self.path)],
+                ['Histogram Code', 'Histogram OpenCV'], 400,0,
+                self.path
+            )),
+            ("Cumulative Histogram", lambda: self.check_image_and_process(
+                self.display_histogram,
+                [histogramme_cumule(self.path), histogramme_cumule_opencv(self.path)],
+                ['Cumulative Histogram Code', 'Cumulative Histogram OpenCV'], 400
+            )),
+            ("Cumulative Gray Histogram", lambda: self.check_image_and_process(
+                self.display_histogram_ng,
+                [histogramme_cumule_ng(self.path), histogramme_cumule_opencv_ng(self.path)],
+                ['Cumulative Histogram Code', 'Cumulative Histogram OpenCV'], 400, 0,
+                self.path
+            )),
+                ("Normalized Histogram", lambda: self.check_image_and_process(
+                self.display_image_and_histogram_ng,
+                'source img',
+                [self.img, etirement_histogramme(self.path), etirement_histogramme_opencv(self.path)],
+                self.path
+            )),
+            ("Egalisation Histogram", lambda: self.check_image_and_process(
+                self.display_image_and_histogram_ng,
+                'source img',
+                [self.img, egalisation_histogramme(self.path), egalisation_histogramme_opencv(self.path)],
+                self.path
+            ))
         ]
 
         for label, command in histogram_functions:
@@ -89,7 +119,7 @@ class ImageProcessorApp:
         titles = ['CODE-MANUAL', 'OPEN-CV2']
         titles.insert(0, title)
         x, y = 0, 50
-        for i in range(3):
+        for i in range(len(imgs)):
             img = imgs[i]
             title = titles[i]
             self.save_image(img, f'images/{title}.png')
@@ -126,7 +156,7 @@ class ImageProcessorApp:
 
         self.master.update()
 
-    def display_histogram_ng(self, rgb_tabs, title, x, path=None):
+    def display_histogram_ng(self, rgb_tabs, title, x, y=0, path=None):
         for i in range(2):
             r_hist = rgb_tabs[i]
             fig, ax = plt.subplots(figsize=(4, 2))
@@ -137,13 +167,18 @@ class ImageProcessorApp:
             canvas = FigureCanvasTkAgg(fig, master=self.master)
             canvas.draw()
             canvas_widget = canvas.get_tk_widget()
-            canvas_widget.place(x=x, y=50)
+            canvas_widget.place(x=x, y=50+y)
             if i == 0:
                 figure_width = fig.get_size_inches()[0] * fig.dpi
             x += figure_width + 70
             plt.close(fig)
 
         self.master.update()
+
+    def display_image_and_histogram_ng(self, title, imgs, path):
+        self.display_image(title, imgs)
+        hist_data = [imgs[1], imgs[2]]
+        self.display_histogram_ng(hist_data, ['Normalized Histogram Code', 'Normalized Histogram OpenCV'], 70,260, path)
 
     def save_image(self, img, name):
         cv2.imwrite(name, img)

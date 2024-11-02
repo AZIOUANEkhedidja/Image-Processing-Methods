@@ -1,5 +1,6 @@
 import numpy as np
 from PIL import Image
+import cv2
 # ---------------------------------------------------code conversion-----------------------------------------------------------
 def rgb_to_hsv(img):
     h = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
@@ -75,7 +76,6 @@ def rgb_to_gray(img):
     for i in range(len(img)):
         for j in range(len(img[i])):
             gray[i][j] = 0.2989*r[i][j] + 0.5870*g[i][j] + 0.1140*b[i][j]
-            
     return gray
 
 
@@ -158,19 +158,23 @@ def histogram_method(path):
     return hist_r, hist_g, hist_b
 
 
-def histogram_method_ng(path):
-    image = Image.open(path)
+def histogram_method_ng(path_or_img):
+    if isinstance(path_or_img, str):
+        image = Image.open(path_or_img)
+    elif isinstance(path_or_img, np.ndarray):
+        image = Image.fromarray(path_or_img)
+    elif isinstance(path_or_img, Image.Image):
+        image = path_or_img
     hist_r = [0] * 256
     pixels = list(image.getdata())
-    
     for pixel in pixels:
         r= pixel
         hist_r[r] += 1
     return hist_r
 
 
-def histogramme_cumule_ng(path):
-    tableaux_ng  = histogram_method_ng(path)
+def histogramme_cumule_ng(path_or_img):
+    tableaux_ng  = histogram_method_ng(path_or_img)
     tableaux_cumule_ng = [0] * 256
     tableaux_cumule_ng[0] = tableaux_ng[0]
     for i in range(1, 256):
@@ -204,4 +208,39 @@ def show_histogram_cumule_ng(tableaux, title, x, path):
     # plt.savefig(path)
     plt.show()
 
-# show_histogram_cumule_ng(histogramme_cumule_ng('images/GRAY.png'), 'Histogramme cumulé',0, 'images/histogramme_cumule.png')
+
+def etirement_histogramme(path):
+    img = cv2.imread(path)
+    img_source = rgb_to_gray(img)
+    min_val = np.min(img_source)
+    max_val = np.max(img_source)
+    img_distination = np.zeros_like(img_source)
+    for i in range(len(img_source)):
+        for j in range(len(img_source[i])):
+            img_distination[i][j] = (255 / (max_val - min_val)) * (img_source[i][j] - min_val) 
+    return img_distination
+
+def egalisation_histogramme(path):
+    img = cv2.imread(path)
+    img_source = rgb_to_gray(img)
+    
+    hist_cumule = histogramme_cumule_ng(img_source)
+    
+    total_pixels = img_source.shape[0] * img_source.shape[1]
+    img_destination = np.zeros_like(img_source)
+
+    for i in range(256):
+        hist_cumule[i] = (hist_cumule[i] * 255) // total_pixels
+    
+    for i in range(img_source.shape[0]):
+        for j in range(img_source.shape[1]):
+            img_destination[i][j] = hist_cumule[img_source[i][j]]
+
+    return img_destination
+
+def show_img(img):
+    cv2.imshow('Before', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    
+# show_img(egalisation_histogramme('images/img.jpg'))

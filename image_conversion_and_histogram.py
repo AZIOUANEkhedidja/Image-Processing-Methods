@@ -1,6 +1,8 @@
 import numpy as np
 from PIL import Image
 import cv2
+import matplotlib.pyplot as plt
+from image_conversion_and_histogram_opencv import *
 # ---------------------------------------------------code conversion-----------------------------------------------------------
 def rgb_to_hsv(img):
     h = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
@@ -169,6 +171,7 @@ def histogram_method_ng(path_or_img):
     pixels = list(image.getdata())
     for pixel in pixels:
         r= pixel
+        # print(hist_r)
         hist_r[r] += 1
     return hist_r
 
@@ -201,24 +204,13 @@ def histogramme_cumule(path):
     return tableaux_cumule_r, tableaux_cumule_g, tableaux_cumule_b
 
 
-def show_histogram_cumule_ng(tableaux, title, x, path):
-    import matplotlib.pyplot as plt
-    plt.plot(tableaux, color='red')
-    plt.title(title)
-    # plt.savefig(path)
-    plt.show()
-
 
 def etirement_histogramme(path):
     img = cv2.imread(path)
-    img_source = rgb_to_gray(img)
-    min_val = np.min(img_source)
-    max_val = np.max(img_source)
-    img_distination = np.zeros_like(img_source)
-    for i in range(len(img_source)):
-        for j in range(len(img_source[i])):
-            img_distination[i][j] = (255 / (max_val - min_val)) * (img_source[i][j] - min_val) 
-    return img_distination
+    min_val = np.min(img)
+    max_val = np.max(img)
+    image_etiree = (img - min_val) * (255 / (max_val - min_val))
+    return image_etiree
 
 def egalisation_histogramme(path):
     img = cv2.imread(path)
@@ -235,12 +227,65 @@ def egalisation_histogramme(path):
     for i in range(img_source.shape[0]):
         for j in range(img_source.shape[1]):
             img_destination[i][j] = hist_cumule[img_source[i][j]]
-
     return img_destination
+
+def distance_histogramme(path1,path2,distance_name):
+    hist1 = histogram_method_ng(path1)
+    hist2 = histogram_method_ng(path2)
+    if distance_name == 'Intersection':
+        return distance_Intersection(hist1, hist2)
+    elif distance_name == 'Correlation':
+        return distance_Correlation(hist1, hist2)
+    elif distance_name == 'Chi-Square':
+        return distance_Chi_deux(hist1, hist2)
+    else:
+        return "Distance not found"
+
+
+def distance_Intersection(hist1, hist2):
+    hist1 = hist1/np.sum(hist1)
+    hist2 = hist2/np.sum(hist2)
+    return np.sum(np.minimum(hist1, hist2))
+
+
+def distance_Correlation(hist1, hist2):
+    hist1 = hist1 - np.mean(hist1)
+    hist2 = hist2 - np.mean(hist2)
+    return np.sum(hist1 * hist2) / (np.sqrt(np.sum(hist1**2)) * np.sqrt(np.sum(hist2**2)))
+
+
+def distance_Chi_deux(hist1, hist2):
+    hist1 = np.array(hist1)
+    hist2 = np.array(hist2)
+    return np.sum((hist1 - hist2) ** 2 / (hist2+ 1e-10) )
+
+def distance_histogramme_joint(path1,path2):
+    img1 = cv2.imread(path1)
+    img2 = cv2.imread(path2)
+    img1 = cv2.resize(img1, (256, 256))
+    img2 = cv2.resize(img2, (256, 256))
+    img1 = rgb_to_gray(img1)
+    img2 = rgb_to_gray(img2)
+    p = np.zeros((256,256))
+    for i in  range(len(img1)):
+        for j in range(len(img2)):
+            p[img1[i][j]][img2[i][j]] += 1
+    return p
+
 
 def show_img(img):
     cv2.imshow('Before', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    
-# show_img(egalisation_histogramme('images/img.jpg'))
+def read_image(path):
+    return cv2.imread(path)
+
+def show_hist_2(hist):
+    plt.plot(hist, color='red')
+    plt.title('Histogram')  
+    plt.xlabel('Intensity Level')
+    plt.ylabel('Frequency')
+    plt.show()
+# show_img(distance_histogramme_joint('images/GRAY.png','images/GRAY.png',256))
+# show_hist(histogram_method_opencv2('images/R.jpg'))
+# hist2 = 

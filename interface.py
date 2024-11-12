@@ -60,7 +60,7 @@ class ImageProcessorApp:
             ("Histogram", lambda: self.check_image_and_process(
                 self.display_histogram,
                 [histogram_method(self.path), histogram_method_opencv2(self.path)],
-                ['Histogram Code', 'Histogram OpenCV'], 4000
+                ['Histogram Code', 'Histogram OpenCV'], 400
             )),
             ("Gray Histogram", lambda: self.check_image_and_process(
                 self.display_histogram_ng,
@@ -83,13 +83,15 @@ class ImageProcessorApp:
                 self.display_image_and_histogram_ng,
                 'source img',
                 [self.img, etirement_histogramme(self.path), etirement_histogramme_opencv(self.path)],
-                self.path
+                self.path,
+                ['Normalized Histogram Code', 'Normalized Histogram OpenCV']
             )),
             ("Egalisation Histogram", lambda: self.check_image_and_process(
                 self.display_image_and_histogram_ng,
                 'source img',
                 [self.img, egalisation_histogramme(self.path), egalisation_histogramme_opencv(self.path)],
-                self.path
+                self.path,
+                ['Egalisation Histogram Code', 'Egalisation Histogram OpenCV']
             ))
         ]
 
@@ -139,6 +141,9 @@ class ImageProcessorApp:
             r_hist, g_hist, b_hist = rgb_tabs[i]
             fig, ax = plt.subplots(figsize=(4, 2))
             ax.plot(r_hist, color="red", label="Red Channel")
+            plt.bar(range(256), r_hist, color='red')
+            plt.bar(range(256), g_hist, color='green')
+            plt.bar(range(256), b_hist, color='blue')
             ax.plot(g_hist, color="green", label="Green Channel")
             ax.plot(b_hist, color="blue", label="Blue Channel")
             ax.set_title(f"Histogram for {title[i]}")
@@ -156,11 +161,12 @@ class ImageProcessorApp:
 
         self.master.update()
 
-    def display_histogram_ng(self, rgb_tabs, title, x, y=0, path=None):
+    def display_histogram_ng(self, hists, title, x, y=0, path=None):
         for i in range(2):
-            r_hist = rgb_tabs[i]
+            hist = hists[i]
             fig, ax = plt.subplots(figsize=(4, 2))
-            ax.plot(r_hist, color="black")
+            # ax.plot(hist, color="black")
+            plt.bar(range(256), hist, color='black')
             ax.set_title(f"Histogram for {title[i]}")
             ax.set_xlabel("Pixel Intensity")
             ax.set_ylabel("Frequency")
@@ -175,10 +181,10 @@ class ImageProcessorApp:
 
         self.master.update()
 
-    def display_image_and_histogram_ng(self, title, imgs, path):
+    def display_image_and_histogram_ng(self, title, imgs, path, titels):
         self.display_image(title, imgs)
-        hist_data = [imgs[1], imgs[2]]
-        self.display_histogram_ng(hist_data, ['Normalized Histogram Code', 'Normalized Histogram OpenCV'], 70,260, path)
+        hist_data = [histogram_method_opencv2_ng(imgs[1]), histogram_method_opencv2_ng(imgs[2])]
+        self.display_histogram_ng(hist_data,titels, 70,260, path)
 
     def save_image(self, img, name):
         cv2.imwrite(name, img)

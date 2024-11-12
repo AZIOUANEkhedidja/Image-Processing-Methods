@@ -62,8 +62,12 @@ def histogram_method_opencv2(path):
     return r_hist, g_hist, b_hist
 
 
-def histogram_method_opencv2_ng(path):
-    img = cv2.imread(path)
+def histogram_method_opencv2_ng(path_or_img):
+    if isinstance(path_or_img, str):
+        img = cv2.imread(path_or_img)
+    elif isinstance(path_or_img, np.ndarray):
+        img = path_or_img
+    # img = cv2.imread(path_or_img)
     ng = cv2.split(img)
     ng_hist, _ = np.histogram(ng, bins=256, range=(0, 256))
     return ng_hist
@@ -94,8 +98,7 @@ def etirement_histogramme_opencv(path):
     image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2GRAY) 
     min_val = np.min(image)
     max_val = np.max(image)
-    image_etiree = (image - min_val) * (255 / (max_val - min_val))
-    image_etiree = np.clip(image_etiree, 0, 255).astype(np.uint8)
+    image_etiree = cv2.normalize(image, None, min_val, max_val, cv2.NORM_MINMAX)
     return image_etiree
 
 
@@ -106,9 +109,26 @@ def egalisation_histogramme_opencv(path):
     return image
 
 
+def distance_histogramme_opencv(path_img1,path_img2,distance_name):
+    hist1 = histogram_method_opencv2_ng(path_img1)
+    hist2 = histogram_method_opencv2_ng(path_img2)
+    # Normalize histograms
+    hist1 = hist1.astype(np.float32)
+    hist2 = hist2.astype(np.float32)
+    
+    if distance_name == 'Intersection':
+        hist1 = hist1 / np.sum(hist1)
+        hist2 = hist2 / np.sum(hist2)
+        return cv2.compareHist(hist1, hist2, cv2.HISTCMP_INTERSECT)
+    elif distance_name == 'Correlation':
+        return cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+    elif distance_name == 'Chi-Square':
+        return cv2.compareHist(hist1, hist2, cv2.HISTCMP_CHISQR)
+    else:
+        return "Invalid distance name"
+
+
 def show_img(img):
     cv2.imshow('Before', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-# show_img(egalisation_histogramme_opencv('images/img.jpg'))

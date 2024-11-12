@@ -127,8 +127,3 @@ def distance_histogramme_opencv(path_img1,path_img2,distance_name):
     else:
         return "Invalid distance name"
 
-
-def show_img(img):
-    cv2.imshow('Before', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()

@@ -15,8 +15,10 @@ class ImageProcessorApp:
         self.master.geometry("1100x600")
         
         self.path = None
+        self.path2 = None
         self.img = None
-        
+        self.img2 = None
+        self.first_selection = True
         self.menu_bar = Menu(self.master)
         self.create_widgets()
         self.create_menus()
@@ -79,7 +81,7 @@ class ImageProcessorApp:
                 ['Cumulative Histogram Code', 'Cumulative Histogram OpenCV'], 400, 0,
                 self.path
             )),
-                ("Normalized Histogram", lambda: self.check_image_and_process(
+            ("Normalized Histogram", lambda: self.check_image_and_process(
                 self.display_image_and_histogram_ng,
                 'source img',
                 [self.img, etirement_histogramme(self.path), etirement_histogramme_opencv(self.path)],
@@ -92,6 +94,11 @@ class ImageProcessorApp:
                 [self.img, egalisation_histogramme(self.path), egalisation_histogramme_opencv(self.path)],
                 self.path,
                 ['Egalisation Histogram Code', 'Egalisation Histogram OpenCV']
+            )),
+            ("Distance Histogram", lambda: self.check_image_and_process(
+                self.distance_histogram,
+                ['Intersection', 'Correlation', 'Chi-Square'],
+                # [self.path, self.path2]
             ))
         ]
 
@@ -99,17 +106,64 @@ class ImageProcessorApp:
             menu.add_command(label=label, command=command)
             menu.add_separator()
 
+    def distance_histogram(self, titles):
+        for widget in self.master.winfo_children():
+            if isinstance(widget, tk.Button):
+                widget.destroy()
+
+        btn1 = tk.Button(self.master, width=10, text=titles[0] , command=lambda: self.process_distance("Intersection"))
+        btn1.place(x=50, y=350)
+
+        btn2 = tk.Button(self.master, width=10, text=titles[1] , command=lambda: self.process_distance("Correlation"))
+        btn2.place(x=150, y=350)
+
+        btn3 = tk.Button(self.master, width=10, text=titles[2] , command=lambda: self.process_distance("Chi-Square"))
+        btn3.place(x=250, y=350)
+
+    def process_distance(self, option):
+        if option == "joint":
+            result_opencv = distance_histogramme_joint(self.path2, self.path)
+            messagebox.showinfo("Distance", f"The distance  {option}- CODE MANUAL  is {result_opencv}")
+            result_code = distance_histogramme_joint(self.path, self.path2)
+        elif option == "Intersection":
+            result_code = distance_histogramme(self.path, self.path2, "Intersection")
+            result_opencv = distance_histogramme_opencv(self.path2, self.path, "Intersection")
+        elif option == "Correlation":
+            result_code = distance_histogramme(self.path, self.path2, "Correlation")
+            result_opencv = distance_histogramme_opencv(self.path, self.path2, "Correlation")
+        elif option == "Chi-Square":
+            result_code = distance_histogramme(self.path, self.path2, "Chi-Square")
+            result_opencv = distance_histogramme_opencv(self.path, self.path2, "Chi-Square")
+        
+        messagebox.showinfo(
+            "Distance Results", 
+            f"The distance ({option}) - CODE MANUAL: {result_code}\n"
+            f"The distance ({option}) - OPENCV: {result_opencv}"
+    )
+        
 
     def open_file(self):
         file_path = filedialog.askopenfilename(initialdir="./images", title="Select an Image", filetypes=[("Image Files", "*.jpg;*.jpeg;*.png")])
         if file_path:
-            self.path = os.path.relpath(file_path, start=os.getcwd())
-            self.img = cv2.imread(file_path)
-            img_1 = Image.open(file_path)
-            img_tk = ImageTk.PhotoImage(img_1)
-            self.img_label.config(image=img_tk)
-            self.img_label.image = img_tk
-            self.img_label.place(x=0, y=50)
+            path = os.path.relpath(file_path, start=os.getcwd())
+            if self.first_selection:
+                self.path = path
+                self.first_selection = False
+                self.img = cv2.imread(file_path)
+                img_1 = Image.open(file_path)
+                img_tk = ImageTk.PhotoImage(img_1)
+                self.img_label.config(image=img_tk)
+                self.img_label.image = img_tk
+                self.img_label.place(x=0, y=50)
+            else:
+                self.path2 = path
+                self.first_selection = True
+                self.img2 = cv2.imread(file_path)
+                img_2 = Image.open(self.path2)
+                img_tk2 = ImageTk.PhotoImage(img_2)
+                self.img_label2 = Label(self.master, image=img_tk2)
+                self.img_label2.image = img_tk2
+                self.img_label2.place(x=500,y=50)
 
     def check_image_and_process(self, algorithm_func, *args):
         if self.img is not None:

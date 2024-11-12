@@ -41,6 +41,7 @@ def rgb_to_hsv(img):
     
     return np.dstack((h, s, v)).astype(np.uint8) 
 
+
 def hsv_to_rgb(hsv_image):
     height, width, _ = hsv_image.shape
     rgb_image = np.zeros((height, width, 3), dtype=np.uint8)
@@ -204,13 +205,13 @@ def histogramme_cumule(path):
     return tableaux_cumule_r, tableaux_cumule_g, tableaux_cumule_b
 
 
-
 def etirement_histogramme(path):
     img = cv2.imread(path)
     min_val = np.min(img)
     max_val = np.max(img)
     image_etiree = (img - min_val) * (255 / (max_val - min_val))
     return image_etiree
+
 
 def egalisation_histogramme(path):
     img = cv2.imread(path)
@@ -228,6 +229,7 @@ def egalisation_histogramme(path):
         for j in range(img_source.shape[1]):
             img_destination[i][j] = hist_cumule[img_source[i][j]]
     return img_destination
+
 
 def distance_histogramme(path1,path2,distance_name):
     hist1 = histogram_method_ng(path1)
@@ -259,6 +261,7 @@ def distance_Chi_deux(hist1, hist2):
     hist2 = np.array(hist2)
     return np.sum((hist1 - hist2) ** 2 / (hist2+ 1e-10) )
 
+
 def distance_histogramme_joint(path1,path2):
     img1 = cv2.imread(path1)
     img2 = cv2.imread(path2)
@@ -272,20 +275,3 @@ def distance_histogramme_joint(path1,path2):
             p[img1[i][j]][img2[i][j]] += 1
     return p
 
-
-def show_img(img):
-    cv2.imshow('Before', img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-def read_image(path):
-    return cv2.imread(path)
-
-def show_hist_2(hist):
-    plt.plot(hist, color='red')
-    plt.title('Histogram')  
-    plt.xlabel('Intensity Level')
-    plt.ylabel('Frequency')
-    plt.show()
-# show_img(distance_histogramme_joint('images/GRAY.png','images/GRAY.png',256))
-# show_hist(histogram_method_opencv2('images/R.jpg'))
-# hist2 = 

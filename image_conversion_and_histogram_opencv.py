@@ -94,7 +94,7 @@ def histogramme_cumule_opencv_ng(path):
     return np.cumsum(ng_hist)
 
 
-def etirement_histogramme_opencv(path):
+def normalization_histogramme_opencv(path):
     image = cv2.cvtColor(cv2.imread(path), cv2.COLOR_BGR2GRAY) 
     min_val = np.min(image)
     max_val = np.max(image)
@@ -127,3 +127,60 @@ def distance_histogramme_opencv(path_img1,path_img2,distance_name):
     else:
         return "Invalid distance name"
 
+def histogramme_joint_opencv(path1, path2):
+    img1 = cv2.imread(path1)
+    img2 = cv2.imread(path2)
+    img1 = cv2.resize(img1, (256, 256))
+    img2 = cv2.resize(img2, (256, 256))
+    hist_2d, x_edges, y_edgs = np.histogram2d(img1.ravel(), img2.ravel(), bins=256, range=[[0, 256], [0, 256]])
+    return hist_2d
+
+
+def distance_histogramme_joint_opencv(path1, path2):
+    hist = histogramme_joint_opencv(path1, path2)
+    hist = hist / np.sum(hist)
+    information_mutuelle = 0
+    for i in range(256):
+        for j in range(256):
+            if hist[i][j] > 0:
+                prob_i = np.sum(hist[i, :])  
+                prob_j = np.sum(hist[:, j])  
+                information_mutuelle += hist[i][j] * np.log(hist[i][j] / (prob_i * prob_j))
+
+    return information_mutuelle
+
+# -------------------------------------------------------opencv code Transformations géométriques-------------------------------------------------------
+
+def translate_opencv(image, tx, ty):
+    height, width = image.shape[:2]
+    translation_matrix = np.array([
+        [1, 0, tx],  
+        [0, 1, ty]   
+    ], dtype=np.float32)
+    translated_image = cv2.warpAffine(image, translation_matrix, (width, height))
+    return translated_image
+
+
+def rotation_ppv_opencv(path, angle, interpolation=cv2.INTER_LINEAR):
+    img = cv2.imread(path)
+    rows, cols = img.shape[:2]
+    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+    img_res = cv2.warpAffine(img, M, (cols, rows), flags=interpolation)
+    return img_res
+
+
+def echelle_opencv(path, scale_x, scale_y):
+    img = cv2.imread(path)
+    img_res = cv2.resize(img, None, fx=scale_x, fy=scale_y)
+    return img_res
+
+
+def cisaillement_opencv(path, shx, shy):
+    img = cv2.imread(path)
+    rows, cols = img.shape[:2]
+    shear_matrix = np.array([
+        [1, shx, 0],
+        [shy, 1, 0]
+    ], dtype=np.float32)
+    img_res = cv2.warpAffine(img, shear_matrix, (cols, rows))
+    return img_res

@@ -1,9 +1,10 @@
 import numpy as np
 from PIL import Image
 import cv2
-import matplotlib.pyplot as plt
 from image_conversion_and_histogram_opencv import *
-# ---------------------------------------------------code conversion-----------------------------------------------------------
+import copy
+import math
+
 def rgb_to_hsv(img):
     h = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
     s = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
@@ -19,7 +20,7 @@ def rgb_to_hsv(img):
             cmin = min(r, g, b)
             delta = cmax - cmin
             
-            # Calculate Hue
+            
             if delta == 0:
                 h[i][j] = 0
             elif cmax == r:
@@ -29,7 +30,7 @@ def rgb_to_hsv(img):
             elif cmax == b:
                 h[i][j] = 60 * (((r - g) / delta) + 4)
             
-            # Calculate Saturation
+            
             if cmax != 0:
                 s[i][j] = delta / cmax
             else:
@@ -144,9 +145,9 @@ def ycbcr_to_rgb(img):
             
     return np.dstack((r,g,b))
 
-# ------------------------------------------------------code histogramme--------------------------------------------------------
+
 def histogram_method(path):
-    # if isinstance(path, str):
+    
     image = Image.open(path)
     hist_r = [0] * 256
     hist_g = [0] * 256
@@ -172,7 +173,7 @@ def histogram_method_ng(path_or_img):
     pixels = list(image.getdata())
     for pixel in pixels:
         r= pixel
-        # print(hist_r)
+        
         hist_r[r] += 1
     return hist_r
 
@@ -205,7 +206,7 @@ def histogramme_cumule(path):
     return tableaux_cumule_r, tableaux_cumule_g, tableaux_cumule_b
 
 
-def etirement_histogramme(path):
+def normalization_histogramme(path):
     img = cv2.imread(path)
     min_val = np.min(img)
     max_val = np.max(img)
@@ -214,8 +215,8 @@ def etirement_histogramme(path):
 
 
 def egalisation_histogramme(path):
-    img = cv2.imread(path)
-    img_source = rgb_to_gray(img)
+    img_source = cv2.imread(path)
+    img_source = rgb_to_gray_opencv(img_source)
     
     hist_cumule = histogramme_cumule_ng(img_source)
     
@@ -262,7 +263,7 @@ def distance_Chi_deux(hist1, hist2):
     return np.sum((hist1 - hist2) ** 2 / (hist2+ 1e-10) )
 
 
-def distance_histogramme_joint(path1,path2):
+def histogramme_joint(path1,path2):
     img1 = cv2.imread(path1)
     img2 = cv2.imread(path2)
     img1 = cv2.resize(img1, (256, 256))
@@ -275,3 +276,99 @@ def distance_histogramme_joint(path1,path2):
             p[img1[i][j]][img2[i][j]] += 1
     return p
 
+
+def distance_histogramme_joint(path1, path2):
+    hist = histogramme_joint(path1, path2)
+    hist = hist / np.sum(hist)
+    information_mutuelle = 0
+    for i in range(256):
+        for j in range(256):
+            if hist[i][j] > 0:
+                prob_i = np.sum(hist[i, :])  
+                prob_j = np.sum(hist[:, j])  
+                information_mutuelle += hist[i][j] * np.log(hist[i][j] / (prob_i * prob_j))
+
+    return information_mutuelle
+
+# -------------------------------------------------------opencv code Transformations géométriques-------------------------------------------------------
+def interpolation_ppv(I, x, y):
+    i, j = int(round(x)), int(round(y))
+    if 0 <= i < I.shape[0] and 0 <= j < I.shape[1]:
+        return I[i, j]
+    return (0, 0, 0)
+
+
+def bilinear_interpolation(I,x,y):
+    x1, y1 = int(x), int(y)
+    x2, y2 = x1 + 1, y1 + 1
+    if x1 < 0 or y1 < 0 or x2 >= I.shape[0] or y2 >= I.shape[1]:
+        return (0, 0, 0)  
+    dx, dy = x - x1, y - y1  
+    return ((1 - dx) * (1 - dy) * I[x1, y1] + dx * (1 - dy) * I[x2, y1] +
+            (1 - dx) * dy * I[x1, y2] + dx * dy * I[x2, y2]).astype(np.uint8)
+
+# -----------------------------------------
+def translate(image, tx, ty):
+    rows, cols = image.shape[:2]
+    translation_matrix = np.array([
+        [1, 0, tx],
+        [0, 1, ty]
+    ], dtype=np.float32)
+
+    translated_image = cv2.warpAffine(image, translation_matrix, (cols, rows))
+    return translated_image
+
+
+def cisaillement(path, shx, shy):
+    img = cv2.imread(path)
+    rows, cols, _ = img.shape
+    sheared_image = np.zeros_like(img)
+
+    for i in range(rows):
+        for j in range(cols):
+            new_x = int(j + shx * i)
+            new_y = int(i + shy * j)
+            if 0 <= new_x < cols and 0 <= new_y < rows:
+                sheared_image[new_y, new_x] = img[i, j]
+    return sheared_image
+
+
+def rotation(path, angle, method):
+    img = cv2.imread(path)
+    rows, cols = img.shape[:2]
+    center_row, center_col = rows / 2, cols / 2
+    rotated_image = np.zeros_like(img)
+    angle_rad = math.radians(angle)
+    if method == 'ppv':
+        interpolation_func = interpolation_ppv
+    elif method == 'bilinear':
+        interpolation_func = bilinear_interpolation
+
+    for i in range(rows):
+        for j in range(cols):
+            original_i = center_row + (i - center_row) * math.cos(-angle_rad) - (j - center_col) * math.sin(-angle_rad)
+            original_j = center_col + (i - center_row) * math.sin(-angle_rad) + (j - center_col) * math.cos(-angle_rad)
+            if 0 <= original_i < rows and 0 <= original_j < cols:
+                rotated_image[i, j] = interpolation_func(img, original_i, original_j)
+
+    return rotated_image
+
+
+def homothetie(path, scale_x, scale_y, method='ppv'):
+    img = cv2.imread(path)
+    rows, cols = img.shape[:2]
+    print(rows, cols)
+    image = np.zeros_like(img)
+    
+    if method == 'ppv':
+        interpolation_func = interpolation_ppv
+    elif method == 'bilinear':
+        interpolation_func = bilinear_interpolation
+
+    for ii in range(rows):
+        for jj in range(cols):
+            i = ii / scale_y
+            j = jj / scale_x
+            if 0 <= i < rows and 0 <= j < cols:
+                image[ii, jj] = interpolation_func(img, i, j)
+    return image

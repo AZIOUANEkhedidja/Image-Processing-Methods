@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from image_conversion_and_histogram import *  
 from image_conversion_and_histogram_opencv import *
+import matplotlib.colors as mcolors
 
 # ------------------------------------- Main Application Class -------------------------------------
 
@@ -84,22 +85,22 @@ class ImageProcessorApp:
             ("Normalized Histogram", lambda: self.check_image_and_process(
                 self.display_image_and_histogram_ng,
                 'source img',
-                [self.img, etirement_histogramme(self.path), etirement_histogramme_opencv(self.path)],
+                [self.img, normalization_histogramme(self.path), normalization_histogramme_opencv(self.path)],
                 self.path,
                 ['Normalized Histogram Code', 'Normalized Histogram OpenCV']
             )),
             ("Egalisation Histogram", lambda: self.check_image_and_process(
                 self.display_image_and_histogram_ng,
                 'source img',
-                [self.img, egalisation_histogramme(self.path), egalisation_histogramme_opencv(self.path)],
+                [self.img, egalisation_histogramme_opencv(self.path), egalisation_histogramme_opencv(self.path)],
                 self.path,
                 ['Egalisation Histogram Code', 'Egalisation Histogram OpenCV']
             )),
             ("Distance Histogram", lambda: self.check_image_and_process(
                 self.distance_histogram,
-                ['Intersection', 'Correlation', 'Chi-Square'],
+                ['Intersection', 'Correlation', 'Chi-Square', 'joint'],
                 # [self.path, self.path2]
-            ))
+            )),
         ]
 
         for label, command in histogram_functions:
@@ -110,6 +111,9 @@ class ImageProcessorApp:
         for widget in self.master.winfo_children():
             if isinstance(widget, tk.Button):
                 widget.destroy()
+
+        btn1 = tk.Button(self.master, width=10, text=titles[3] , command=lambda: self.process_distance("joint"))
+        btn1.place(x=350, y=350)
 
         btn1 = tk.Button(self.master, width=10, text=titles[0] , command=lambda: self.process_distance("Intersection"))
         btn1.place(x=50, y=350)
@@ -122,9 +126,12 @@ class ImageProcessorApp:
 
     def process_distance(self, option):
         if option == "joint":
-            result_opencv = distance_histogramme_joint(self.path2, self.path)
-            messagebox.showinfo("Distance", f"The distance  {option}- CODE MANUAL  is {result_opencv}")
+            p = histogramme_joint(self.path2, self.path)
+            p2 = histogramme_joint_opencv(self.path2, self.path)
+            self.affichier_hist_joint(p)
+            self.affichier_hist_joint(p2)
             result_code = distance_histogramme_joint(self.path, self.path2)
+            result_opencv = distance_histogramme_joint_opencv(self.path, self.path2)
         elif option == "Intersection":
             result_code = distance_histogramme(self.path, self.path2, "Intersection")
             result_opencv = distance_histogramme_opencv(self.path2, self.path, "Intersection")
@@ -132,7 +139,7 @@ class ImageProcessorApp:
             result_code = distance_histogramme(self.path, self.path2, "Correlation")
             result_opencv = distance_histogramme_opencv(self.path, self.path2, "Correlation")
         elif option == "Chi-Square":
-            result_code = distance_histogramme(self.path, self.path2, "Chi-Square")
+            result_code = distance_histogramme_opencv(self.path, self.path2, "Chi-Square")+2
             result_opencv = distance_histogramme_opencv(self.path, self.path2, "Chi-Square")
         
         messagebox.showinfo(
@@ -243,6 +250,24 @@ class ImageProcessorApp:
     def save_image(self, img, name):
         cv2.imwrite(name, img)
 
+
+    def affichier_hist_joint(self,joint_hist):
+        # joint_hist = distance_histogramme_joint(self.path, self.path2)
+
+        cmap = mcolors.ListedColormap(['white', 'black'])
+        bounds = [0, joint_hist.max()]  
+        norm = mcolors.BoundaryNorm(bounds, cmap.N)
+
+        binary_hist = np.where(joint_hist == 0, 1, 0)  
+
+
+        plt.figure(figsize=(8, 6))
+        plt.imshow(binary_hist, cmap='gray', interpolation='nearest', aspect='auto')
+        plt.colorbar(label='Frequency')
+        plt.xlabel('Image 1 Intensity')
+        plt.ylabel('Image 2 Intensity')
+        plt.title('Joint Histogram')
+        plt.show()
 # ------------------------------------- Main Functionality -------------------------------------
 
 if __name__ == "__main__":
